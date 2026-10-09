@@ -95,3 +95,4 @@ scripts/           inspect, wallet:new, stage-a
 test/              vitest unit tests
 docs/feasibility.md  research, verified facts vs assumptions, kill test
 ```
+# Conviction-pool
