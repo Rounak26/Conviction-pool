@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Conviction Pools ("Launches graduate. Conviction begins.") is a hackathon project (Meteora ecosystem, Colosseum). It is a market for committed liquidity on tokens after they graduate from Meteora DBC to DAMM v2. Users rest DLMM limit orders. A public **Conviction Book** shows those orders against the DAMM v2 reference price. A transparent score may later reward patient capital.
 
-**Current phase: feasibility.** `docs/feasibility.md` is the source of truth. It lists verified facts, unresolved assumptions, the price-bridge analysis, and the kill test. Read it before writing code. Do not build product features until stage A of the kill test passes, and do not claim the mechanism works until it has been demonstrated on-chain.
+**Current phase: read-only hackathon MVP.** `docs/feasibility.md` is the source of truth. It lists verified facts, unresolved assumptions, the price-bridge analysis, the kill test, the Stage A devnet result (§6) and the Stage B0 read-only mainnet observation (§7). Read it before writing code. Stage A passed on devnet. The MVP is a local, read-only Conviction Book (`web/`, `scripts/serve.ts`). Do not add wallet connections or transaction sending without explicit approval, and do not claim the mechanism works on mainnet for our own pools: Stage B has not run.
 
 ## Stack
 
@@ -48,6 +48,9 @@ npm test                      # vitest unit tests (pure math only, no network)
 npx vitest run -t "no-fill"   # single test / describe block by name
 npm run typecheck             # tsc, no emit
 npm run inspect               # read-only devnet preflight (no signing)
+npm run demo                  # rebuild web/data from runs/ and serve the Conviction Book at http://127.0.0.1:5173
+npm run app                   # serve only (no rebuild); npm run data rebuilds only
+MAINNET_READONLY=1 npm run b0:census   # read-only mainnet B0 scripts (see README)
 npm run stage-a               # devnet kill test; writes runs/stage-a-devnet-*.json
 LOCALNET=1 RPC_URL=http://127.0.0.1:8899 npm run stage-a   # rehearsal on a local validator (see README)
 ```
@@ -59,3 +62,6 @@ Scripts run with `tsx`. The TypeScript config uses `moduleResolution: Bundler`, 
 - `src/pricing.ts`: pure functions for bin and sqrt prices and the no-fill band. They are cross-checked against the SDK helpers in `test/pricing.test.ts`.
 - `src/chain.ts`: the devnet genesis guard, test-keypair loading (refuses `~/.config/solana/id.json`), and `Recorder`. `Recorder.send` simulates, then sends, then confirms, and logs the signature, fee, compute units and logs to `runs/*.json`. `Recorder.check` records assertions tagged `on-chain`, `quote` or `simulation`. Only `on-chain` evidence from a `devnet` run counts toward the feasibility gate.
 - `scripts/stage-a.ts`: the kill test. It exits with 0 for PASS, 1 for FAIL and 2 for BLOCKED.
+- `src/readonly.ts` and `scripts/b0-*.ts`: read-only mainnet observation (opt-in flag, genesis check, RPC method allowlist, rate limit). They never import `src/chain.ts` or load keys; a unit test enforces this.
+- `src/book.ts`: pure Conviction Book logic (status against the reference and the no-fill band, observed time open, observational score, order preview), unit-tested in `test/book.test.ts`.
+- `scripts/build-data.ts` writes `web/data/*.json` from `runs/` (mainnet snapshot, labelled demo data, evidence). `scripts/serve.ts` is a GET-only localhost server for `web/`; it makes no RPC calls.

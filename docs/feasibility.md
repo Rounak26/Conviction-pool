@@ -1,6 +1,6 @@
 # Conviction Pools — Technical Feasibility Report
 
-Status: **Stage A passed on devnet (2026-10-09).** The fill/cancel mechanics work on-chain between wallets we control. **Nothing has been demonstrated on mainnet.** Stage B, the test of whether anyone other than us bridges the price, has not been run. Product demand is untested.
+Status: **Stage A passed on devnet (2026-10-09). Stage B0 read-only mainnet observation ran on 2026-10-09 (§7).** The fill/cancel mechanics work on-chain between wallets we control. **Nothing has been demonstrated on mainnet.** Stage B, the test of whether anyone other than us bridges the price, has not been run. Product demand is untested.
 Date of research: 2026-10-09.
 
 Evidence labels used below: **mainnet** (live mainnet query), **devnet** (a transaction we sent on devnet, finalized), **localnet** (local validator with cloned program binaries; not evidence), **docs/SDK** (documentation or package source).
@@ -61,10 +61,10 @@ Run: `runs/stage-a-devnet-2026-10-09T12-02-13-406Z.json` (git-ignored, kept loca
 
 | # | Assumption | Why it matters | How to resolve |
 |---|-----------|----------------|----------------|
-| U1 | Jupiter will actually route volume through our DLMM pool when it gives a better price than DAMM v2. | If it does, orders fill without our keeper. Listing a pool does not mean volume reaches it. | Kill test, stage B. |
-| U2 | Third-party arbitrage bots watch small DLMM limit-order pools. | If none do, the pool depends on our keeper alone. | Kill test, stage B. |
+| U1 | Jupiter will actually route volume through our DLMM pool when it gives a better price than DAMM v2. | If it does, orders fill without our keeper. Listing a pool does not mean volume reaches it. | Kill test, stage B. B0 (read-only, other people's pools) partly supports it: §7, B0-6 and B0-9. |
+| U2 | Third-party arbitrage bots watch small DLMM limit-order pools. | If none do, the pool depends on our keeper alone. | Kill test, stage B. B0 saw third-party DAMM v2 → DLMM arbitrage fill existing orders in DBC-segment pools (§7, B0-6 to B0-8). Not shown for a new small pool. |
 | U3 | The cost of creating a pool and bin arrays (non-refundable bin-array rent, pool account rent) fits the budget. | Bin arrays are large accounts. | **Measured on devnet → V24.** Creating a DLMM pool costs ≈0.025 SOL and each new bin array ≈0.052 SOL. Mainnet currently has the same rent rate as devnet (one read-only query), but a local validator does not (see §6). Mainnet priority fees are **not** measured. Whether the cost "fits the budget" is a decision for the team, not a measurement. |
-| U4 | The DAMM v2 fee level after graduation is low enough to keep the arbitrage band narrow. | DBC configs can set high or scheduled fees. The arbitrage band is at least the DAMM fee plus the DLMM fee plus transaction costs. | Read `poolState` fee params for candidate tokens. |
+| U4 | The DAMM v2 fee level after graduation is low enough to keep the arbitrage band narrow. | DBC configs can set high or scheduled fees. The arbitrage band is at least the DAMM fee plus the DLMM fee plus transaction costs. | **Measured for 452 order-bearing pairs → §7 B0-3** (median 239 bps on the deepest DAMM v2 pool; 77 pairs at ≤ 30 bps). Still a snapshot: scheduled and dynamic fees change. |
 | U5 | The DAMM v2 program and the DBC → DAMM v2 flow are deployed on devnet. | This is needed for a fully controlled devnet test. | **Resolved:** DLMM, DAMM v2 and DBC are all executable on devnet, and devnet already has 65 `LimitOrder` accounts (`npm run inspect`, 2026-10-09). Stage A creates its own DAMM v2 pool and does not go through DBC graduation. |
 | U6 | The exact semantics of the 50% limit-order fee share and the "bonus" field. | This could be the funding source for rewards. | **Fee share resolved on devnet → V22.** The share is 50%, paid in the input token and withdrawn on cancel. Still open: whether the Data API's `bonus` field equals this on-chain share. That has not been checked. |
 | U7 | `go_to_a_bin` can move an empty pool's active bin without permission. | This would let a keeper re-centre a pool with no liquidity cheaply. | Read the IDL and its signer constraints, then test on devnet. |
@@ -187,6 +187,67 @@ Accounts: operator `Ct68zVKq…ZoEJ6`, DAMM v2 pool `35nkDsWrZn6YEiRtaPTc3x7EcPW
 - *Validation path:* first a localnet rehearsal (not evidence), then one devnet run once you authorize it.
 
 **Localnet rehearsal** (PASS, 26/26, earlier the same day) exercised the same code against cloned binaries. Devnet results supersede it. It found two facts that devnet then confirmed: creating a customizable permissionless DLMM pool requires the creator to hold a non-zero balance of **both** tokens (error 6060, `MissingTokenAmountAsTokenLaunchProof`; one such pool per (X, Y) pair), and the variable fee widens the band (V21).
+
+## 7. Stage B0 result: read-only mainnet observation (2026-10-09)
+
+**What this is.** B0 from [`stage-b-plan.md`](stage-b-plan.md) §2. It reads mainnet state and public APIs, loads no keypair, signs nothing and sends nothing (`src/readonly.ts`: opt-in flag, mainnet genesis check, JSON-RPC method allowlist, rate limit, per-request timeout). Evidence label: **mainnet-observational**. It is about **other people's** orders and pools, so it does **not** resolve U1 or U2 for our own setup, and it says nothing about demand.
+
+**Data sources.**
+
+| Source | Used for | Access |
+|---|---|---|
+| Public RPC `https://api.mainnet-beta.solana.com` (genesis `5eykt4Us…w2N9d` verified) | LimitOrder, LbPair and DAMM v2 pool accounts; signatures and transactions; recent priority fees | `getProgramAccounts`, `getMultipleAccounts`, `getSignaturesForAddress`, `getTransaction`, `getRecentPrioritizationFees`, at 2 req/s |
+| Jupiter `https://lite-api.jup.ag/swap/v1` | `/program-id-to-label`, `/quote` (no wallet) | HTTP GET |
+| Meteora DLMM Data API `https://dlmm.datapi.meteora.ag` (OpenAPI v0.1.0 at `/api-docs/openapi.json`) | `/wallets/{w}/limit_orders/{open,closed}/pools/{pool}` | HTTP GET |
+
+**Runs** (git-ignored, kept locally under `runs/`):
+
+| File | Command | Status |
+|---|---|---|
+| `stage-b0-census-2026-10-09T17-09-50-010Z.json` | `npm run b0:census` | **Complete**: 544/544 order-bearing pools, slot 454936133 (2026-10-09 17:07 UTC), 1,259 requests, 101 HTTP-429 retries, 55 network retries, 0 lookup or decode errors |
+| `stage-b0-verify-dbc-2026-10-09T17-42-46-736Z.json` | `VERIFY_POOLS=25 npm run b0:verify-dbc` | Complete within its cap: 25 rows, 22 distinct DAMM v2 pools, page cap 10 × 1,000 signatures |
+| `stage-b0-offchain-2026-10-09T17-45-44-579Z.json` | `npm run b0:offchain` | Complete: 42 pools, 35 Jupiter-quoted (7 skipped: quote token not SOL/USDC/USDT), 107 wallets × 2 Data API calls |
+| `stage-b0-forensics-2026-10-09T17-57-52-831Z.json` | `npm run b0:forensics` | **Partial**: 31/35 pools before the 50-minute cap (`complete: false`), 1,912 requests, 138 HTTP-429 retries, 77 network retries |
+| `stage-b0-check-txs-2026-10-09T18-48-00-915Z.json` | `npm run b0:check-txs -- <4 sigs>` | Complete: 4/4 transactions |
+
+Superseded and **not evidence**: `stage-b0-census-2026-10-09T13-10-34-947Z.json` (10-pool debug run), `…T16-57-35-430Z.json` (stopped; a decode bug hid every DAMM v2 pool), `…T17-06-45-696Z.json` (1-pool smoke test).
+
+### 7.1 Confirmed observations (mainnet-observational)
+
+| # | Observation | Evidence |
+|---|---|---|
+| B0-1 | Mainnet had **1,490 LimitOrder accounts in 544 DLMM pools, held by 584 owners**. Pool function types: 337 `LimitOrder`, 207 `Undetermined` (legacy pools without rewards, which support orders per `isSupportLimitOrder`), 0 `LiquidityMining`. Quote tokens: SOL 370, USDC 135, USDT 8. | census |
+| B0-2 | **452 of 544** order-bearing DLMM pools have at least one DAMM v2 pool for the same mint pair. They hold 1,265 of the 1,490 orders. | census |
+| B0-3 | **DAMM v2 fees are mostly high.** Current total fee (base + dynamic, from the SDK fee functions at the census slot) of the deepest DAMM v2 pool per pair, n = 452: min 1, p25 100, **median 239**, p75 612, max 9,900 bps. 77 pairs are at ≤ 30 bps and 151 at ≤ 100 bps. Base-fee modes: 390 linear time scheduler, 48 exponential time scheduler, 14 market-cap scheduler; 393 also have a dynamic fee. This partly answers **U4**: for most pairs the band is dominated by the DAMM fee, not by the DLMM fee. | census |
+| B0-4 | The DLMM active price is often far from the deepest DAMM v2 price: median absolute gap 21.7%; 77 pairs within 1%, 156 within 5%, 182 more than 50% apart. This matches §3 "Drift": a DLMM pool with only limit orders does not track the reference price. | census |
+| B0-5 | **DBC origin, partial.** 25 order-bearing pairs have a DAMM v2 pool whose `creator` is DBC's `pool_authority` PDA (`FhVo3mqL…HLuM`). For the 7 of 22 such pools whose history fit in 10,000 signatures, the creation transaction invoked the DBC program (7/7). The other 15 are **unverified due to history limit**. | verify-dbc |
+| B0-6 | **Third-party fills of resting orders happen in the DBC segment.** In 21 DBC-segment pools, 17 swaps consumed limit-order liquidity (`Swap2Evt.limit_order_fee` > 0) in 3 pools: 8 via Jupiter v6, 5 via other routers or direct calls, **4 by DAMM v2 → DLMM arbitrage**. None was signed by an order owner in that pool. | forensics |
+| B0-7 | **The 4 arbitrage fills swapped the paired DAMM v2 pool** in the same transaction: pool `iU7jeVK9…` via DAMM `4C47JJgD…` (2026-06-19, 2 txs, 2 signers) and pool `GMFhonFP…` via DAMM `BdXnvsAL…` (2026-10-09 18:34 UTC, 2 txs, 2 signers). Signatures: `5CifJnLD…`, `3Ld9jk4H…`, `2L4iFDeX…`, `2iXZX4hY…`. Both DAMM pools are DBC-authority-created but in the unverified group of B0-5. | check-txs |
+| B0-8 | Bots run DAMM v2 ↔ DLMM arbitrage on DBC-segment pools: 86 such transactions by **62 distinct signers in 10 pools**, median priority fee 71,485 lamports (p90 325,050). Most did **not** consume order liquidity (56 no, 26 unknown, 4 yes). In the top-by-orders segment (10 pools, mostly SOL/USDC-type pairs): 246 swaps, 0 order fills, 3 arbitrage transactions. | forensics |
+| B0-9 | Jupiter **can** route through some of these DLMM pools. Default quotes (0.05 SOL / 5 USDC in size) used the order-bearing pool in 5/35 buy and 2/28 sell quotes. DLMM-only direct quotes found it in 10/35 buy and 8/28 sell quotes. 17 quotes returned HTTP 400 "No routes found", 6 returned "token not tradable", and 9 returned HTTP 502/503 from Jupiter. | offchain |
+| B0-10 | The Data API has **no endpoint that lists all orders in a pool**. Every limit-order endpoint is per wallet (`/wallets/{wallet}/limit_orders/…`). This answers plan Q6: the Conviction Book must be built from `getProgramAccounts` or by indexing. | OpenAPI spec v0.1.0 |
+| B0-11 | **Data API maker figures** (Meteora's indexer and USD pricing, *not* checked on-chain). DBC segment: 84 open and 74 closed orders, median order size about $854, median open-order age **78.6 days**; closed orders with any fill (n = 48) earned a bonus of median **86.6 bps** of filled notional (p75 117). Top-by-orders segment: median size about $20, median open age 24.1 days, bonus median 10.5 bps (n = 129). 17 of 107 wallet-pool responses had more than 20 orders, and only the first page was read. | offchain |
+
+### 7.2 Hypotheses still open, with what B0 suggests
+
+| ID | Status after B0 |
+|---|---|
+| H1 / U2 (independent fills) | **Supported for some existing DBC-segment pools, not shown for ours.** B0-6 to B0-8 show third-party arbitrage bots filling resting orders through the paired DAMM v2 pool. Not shown: how long after the reference crossed they filled (B0.4 lag was not measured), whether they would fill a new, small, thin pool, or whether they act inside the minute-scale windows we sampled for busy pools. |
+| H2 / U1 (routing) | **Partly supported.** Jupiter routes some quotes and some real fills (B0-6, B0-9), but most default quotes did not use the order-bearing pool. Q1 (the liquidity test for one-sided pools) is unanswered. |
+| H4 (keeper economics) | **Not resolved.** Observed arbitrage priority fees (median about 71k lamports) are a cost input. Arbitrage profit per fill was not computed: signer token deltas are in the run file but are not converted to one currency. |
+| H5 (maker return) | **Weak signal, unverified.** B0-11 bonus figures come from the Data API, not the chain. Q4 (does `bonus` equal the on-chain fee share?) is still open. |
+| H6 (reuse existing pools) | Supported in part: 25 DBC-segment pairs already have order-bearing DLMM pools (B0-5). Whether any is suitable (fee, depth, gap) is for G1 in the plan. |
+
+### 7.3 Unanswered, and what would answer them
+
+- **Busy pools are under-sampled.** `getSignaturesForAddress` with limit 100 covers only minutes on busy pools (for example 17:55–17:56 UTC on the SOL-USDC pool), and public RPC history paging is slow. A historical indexer or an archive RPC with higher limits (for example a paid RPC or a transaction-history API) is needed to measure fill rates over days.
+- **544 transactions were not decoded.** They are version-1 transactions, which `@solana/web3.js` 1.99 cannot parse. They are counted in `fetchErrors` and are not classified. 129 event payloads failed to decode and were counted, not used. Decoding v1 transactions needs a client that supports them, which may mean a newer SDK stack; CLAUDE.md pins web3.js v1, so that is a separate decision.
+- **4 of 35 forensics pools were not examined** (50-minute cap).
+- **15 of 22 DBC-flagged DAMM v2 pools are unverified due to history limit.** Confirming them needs an indexer that returns a pool's creation transaction directly.
+- **37 DLMM swaps emitted only the older `Swap` event**, which has no limit-order field, so whether they consumed orders is unknown.
+- **"direct-or-other" mixes routers.** Program IDs are recorded but not labelled. Jupiter's `/program-id-to-label` could label them.
+- **B0.4 (lag between the reference crossing and the fill) was not run.** It needs DAMM v2 price history per slot, which also needs an indexer.
+- **The DAMM v2 fee is a snapshot** for a 1,000,000-raw-unit A→B probe at the census slot. Scheduled and dynamic fees change over time.
 
 ## Sources
 - [DLMM limit orders](https://docs.meteora.ag/core-products/dlmm/limit-order)

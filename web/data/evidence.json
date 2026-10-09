@@ -1,0 +1,194 @@
+{
+ "stageA": {
+  "cluster": "devnet",
+  "verdict": "PASS",
+  "assertions": "26/26",
+  "solSpent": 0.10511844,
+  "runFile": "runs/stage-a-devnet-2026-10-09T12-02-13-406Z.json",
+  "steps": [
+   {
+    "name": "create test mints X, Y and fund role wallets",
+    "status": "confirmed",
+    "signature": "4XJNzRuA8iezWWMQdtoJGXzjAP3m6o5E8mAHRmWsjmZyaKEhibUEmXHaAJWiBs8ybukRqwzmr9KatYp96KMJbKxc"
+   },
+   {
+    "name": "create token accounts and mint test balances",
+    "status": "confirmed",
+    "signature": "2q6Lx6tDbWuwV1fTeboXmhskN4bkpPYrzhyoR89oVLZLxrnhw9XV1BxZKEsQBbTw6KWoE6skqfcaFN6Bo5CgePSj"
+   },
+   {
+    "name": "create DAMM v2 reference pool (25 bps static fee, price 1.0)",
+    "status": "confirmed",
+    "signature": "5UUWpZtcQFiCagACPJNWyysDFxPNRwibX9uKXR95EgBBNb2TZpSCAEpPx6Vei2CkxiJUkJreXvsroTXJo1LZh1JM"
+   },
+   {
+    "name": "create DLMM LimitOrder pool (bin step 25, 25 bps, price 1.0)",
+    "status": "confirmed",
+    "signature": "ZzxvhhbkN3pWZUEUFnEFZKZgmSqPXxQFZECxsMjLmY23bRZDR74VYEKPsonfQby6WNscoPbcfkJqJcyiqh8w3ZV"
+   },
+   {
+    "name": "place bid A (fill target): 100000000 Y at bin -8 (price 0.980223)",
+    "status": "confirmed",
+    "signature": "4PYKW4rfJFZgf426uwVC1GgjrryPjEirGau87XGBZfCtBuRjfg34smjgBaqi15espsgzVyJX1ZFC4EbaCoj3bDHB"
+   },
+   {
+    "name": "place bid B (cancel-unfilled target): 50000000 Y at bin -40 (price 0.904950)",
+    "status": "confirmed",
+    "signature": "5QQnZ7B93ShuYYa2r9bQHvrkjz3bp44gRXQtZCqjL8SV4DPh28NYoRA44WAexh4bEy7W3DNKr2b6bEcy2P6P1EMd"
+   },
+   {
+    "name": "push reference into no-fill band (sell 11184.892852 X on DAMM, target 0.978)",
+    "status": "confirmed",
+    "signature": "2THqT5oazP3LS5nszitFXkujAvb8rpCnMKPMgPguWs4sHDpHKVY59QwWxyv18bLCPs1E3hjocNTwkjg5hPUZkek3"
+   },
+   {
+    "name": "simulate atomic arb inside band (expected to fail)",
+    "status": "simulation-failed",
+    "signature": null
+   },
+   {
+    "name": "push reference past no-fill band (sell 14793.45924 X on DAMM, target 0.95)",
+    "status": "confirmed",
+    "signature": "3pKJ1Fkn2HCPHQZkaSySXgjaSxmb75AFUyYjgQ1gXJaEsp54FCyW9FK5GA5a39nQ7g887J4Ewt3dRnwbBbdtotLs"
+   },
+   {
+    "name": "ATOMIC ARB: buy X on DAMM v2 -> sell X into DLMM bid",
+    "status": "confirmed",
+    "signature": "3pqrZMKJAy72SP3Co7phyLidnRMsow5BGYuZm8es1SxKXdw3P7AK7CpCnygsZBusepnJ4teZCrE5SXEk9h9tmscA"
+   },
+   {
+    "name": "cancel bid B (unfilled) (bins -40)",
+    "status": "confirmed",
+    "signature": "Fwq2bSpG52iHwuba1tkKkwPo2ZjMVgSRGbCJ329cN4HBmaLUfHNw7R1Hdwe5MUyNyCv8h9pDh6HzbUppaBSyFtn"
+   },
+   {
+    "name": "cancel bid A (partially filled) — withdraw proceeds (bins -8)",
+    "status": "confirmed",
+    "signature": "4vTatEu1C9AB7Y1ZbgqCLox4YquvjWVKs5ivPNqcmw2vG2TWaGtsyinixfQRsaunLAUNHmr6XK61iS1GiXCnWfwz"
+   }
+  ]
+ },
+ "b0": {
+  "takenAt": "2026-10-09T17:45:44.575Z",
+  "census": {
+   "slot": 454936133,
+   "blockTime": 1791565622,
+   "limitOrderAccounts": 1490,
+   "poolsWithOrders": 544,
+   "distinctOwners": 584,
+   "functionTypeCounts": {
+    "LimitOrder": 337,
+    "Undetermined": 207
+   },
+   "topQuoteMints": [
+    [
+     "So11111111111111111111111111111111111111112",
+     370
+    ],
+    [
+     "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+     135
+    ],
+    [
+     "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+     8
+    ],
+    [
+     "5GYM6fVM6gruTkP3oG6GzV3YNm242LhgWGfh3G5gjWuS",
+     6
+    ],
+    [
+     "METvsvVRapdj9cFLzq4Tr43xK4tAjQfwX76z3n6mWQL",
+     3
+    ]
+   ],
+   "pairsExamined": 544,
+   "pairsWithDammV2": 452,
+   "pairsWithDbcAuthorityDammV2": 25,
+   "dbcPoolAuthority": "FhVo3mqL8PW5pH5U2CN4XE33DokiyZnUwuGpH2hmHLuM",
+   "dammCreators": [
+    [
+     "11111111111111111111111111111111",
+     137
+    ],
+    [
+     "Fe1uxWjWFCDq6RLYmiP5K2ZEcQVkCiUKSnaD7kgEX99R",
+     57
+    ],
+    [
+     "5yeWDDsdSzqepSawsDKfxMqPfPLJwU9xrHBqbRAfc86d",
+     45
+    ],
+    [
+     "2sVZ36iEusiGkeQxviwZBA7rCPnEdnYg7H3tjb5uAa1J",
+     41
+    ],
+    [
+     "FhVo3mqL8PW5pH5U2CN4XE33DokiyZnUwuGpH2hmHLuM",
+     25
+    ],
+    [
+     "bmbQnxpknKtqnke92zhkV9yDU5Zp4GFdSrHV8oEyW7T",
+     25
+    ],
+    [
+     "SPNevNL1qsEX4GSvw5GVTGhEDwAtmyrdsPiGQgrFiQF",
+     24
+    ],
+    [
+     "vPczFpjUEeMfYTtPkwqNYdJXvFBB1dDVBUA4sbMocQe",
+     23
+    ],
+    [
+     "BiqeYSDoic38ptXkxJMgWqK4rCSJmdVKrWnyVJ6kCuEe",
+     20
+    ],
+    [
+     "8anubgcz49885zxcYqgMjMJoddhdxy9evySW2UpbQMdW",
+     20
+    ]
+   ],
+   "lookupErrors": 0,
+   "dammDecodeErrors": 0
+  },
+  "forensics": {
+   "poolsExamined": 31,
+   "complete": false,
+   "thirdPartyArbOrderFills": 4,
+   "orderFills": 17,
+   "arbFills": [
+    {
+     "lbPair": "iU7jeVK9LEk55zVbT5Bw4txyzJP6X5eJ3v35JffMiLg",
+     "signature": "5CifJnLDpHB2V2GFCwxG366tJFJm6BPq2BLB8yBsNWDuKfbXHo6yVxo6Mnst2MqFzreXoWa7WsAHNG95x2eRY9fR",
+     "blockTime": 1781904904,
+     "signer": "8pY1AukbuPgUE3EetyLa59rFLMimJGT94ZzbMEZcQF4w"
+    },
+    {
+     "lbPair": "iU7jeVK9LEk55zVbT5Bw4txyzJP6X5eJ3v35JffMiLg",
+     "signature": "3Ld9jk4HBjBn3X1cJtpVuvTzsAQshNJ9mtzt8HjJbG2bRhi9UyvQRFA373VDRWemgfk3MpdFkqet1NkQx9UaWTBZ",
+     "blockTime": 1781898937,
+     "signer": "3viXkp6sciyo6xM3js41cWqSG6iqDeUj7G6DoqZzjCkd"
+    },
+    {
+     "lbPair": "GMFhonFPeHYuVTc6ZefwrftdBxmjuAEvvGWhiKZiFHcE",
+     "signature": "2L4iFDeXifZaRKKJQCp6EyT6TwXEaZF58Kkv1HUWi6SPcenhQQbdY1d29PJjowMufVVLLMC6FAoTNb6cswQp4Nu2",
+     "blockTime": 1791570896,
+     "signer": "HvFdDWS3RqymRAVx1ZdoL2RjiC38r5dtt19Z8op5jqDK"
+    },
+    {
+     "lbPair": "GMFhonFPeHYuVTc6ZefwrftdBxmjuAEvvGWhiKZiFHcE",
+     "signature": "2iXZX4hYpZb9N7JifiCUMeGL2XHkZYmv7P4qdw5poqW6vsHe8xdX8KzyMqDHD5RRh8kD11b6SoDwN5zMHbNh4rt5",
+     "blockTime": 1791570895,
+     "signer": "9EwQoN74Hzw747EM7wB3WtvgAdRGH1czaPtbqZj1qDj4"
+    }
+   ]
+  },
+  "files": {
+   "census": "runs/stage-b0-census-2026-10-09T17-09-50-010Z.json",
+   "offchain": "runs/stage-b0-offchain-2026-10-09T17-45-44-579Z.json",
+   "verifyDbc": "runs/stage-b0-verify-dbc-2026-10-09T17-42-46-736Z.json",
+   "forensics": "runs/stage-b0-forensics-2026-10-09T17-57-52-831Z.json"
+  },
+  "report": "docs/feasibility.md §7"
+ }
+}

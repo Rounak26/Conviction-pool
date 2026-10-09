@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conviction Book</title>
+    <meta name="description" content="Conviction Book: resting Meteora DLMM limit orders shown against the DAMM v2 reference price. Read-only." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l7 7-7 7-7-7z' fill='%235b4bd6'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">◆</span>
+        <div>
+          <h1>Conviction Pools</h1>
+          <p class="tag">Launches graduate. Conviction begins.</p>
+        </div>
+      </div>
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="book" aria-selected="true">Conviction Book</button>
+        <button role="tab" data-tab="evidence" aria-selected="false">Evidence</button>
+        <button role="tab" data-tab="about" aria-selected="false">How it works</button>
+      </nav>
+      <div class="source" role="radiogroup" aria-label="Data source">
+        <button data-source="mainnet-snapshot" aria-pressed="true">Mainnet snapshot</button>
+        <button data-source="demo" aria-pressed="false">Demo data</button>
+      </div>
+    </header>
+
+    <div id="banner" class="banner" role="note"></div>
+
+    <main id="tab-book" class="layout">
+      <aside class="pools">
+        <input id="pool-search" type="search" placeholder="Filter pools" aria-label="Filter pools" />
+        <label class="check"><input id="dbc-only" type="checkbox" /> Graduated (DBC) only</label>
+        <ul id="pool-list"></ul>
+      </aside>
+
+      <section class="detail" id="detail">
+        <p class="empty">Select a pool.</p>
+      </section>
+    </main>
+
+    <main id="tab-evidence" class="page" hidden></main>
+
+    <main id="tab-about" class="page" hidden>
+      <article class="prose">
+        <h2>What the Conviction Book shows</h2>
+        <p>
+          When a token graduates from Meteora's Dynamic Bonding Curve, its price lives in a DAMM v2 pool. Anyone can rest
+          <strong>DLMM limit orders</strong> on the same pair. The Conviction Book lists those resting orders against the
+          <strong>DAMM v2 reference price</strong>, so you can see who is waiting to buy below the market or sell above it, how far
+          away, and for how long.
+        </p>
+        <h3>Statuses</h3>
+        <dl class="defs">
+          <dt><span class="pill resting">resting</span></dt>
+          <dd>The reference price has not reached the order.</dd>
+          <dt><span class="pill crossed-in-band">crossed, in band</span></dt>
+          <dd>
+            The reference passed the order, but not by more than the estimated <em>no-fill band</em> (DAMM fee + DLMM fee). An
+            arbitrageur would lose money filling it, so it may sit unfilled.
+          </dd>
+          <dt><span class="pill arb-fillable">arb-fillable</span></dt>
+          <dd>The reference is past the order by more than the band. An atomic DAMM v2 → DLMM arbitrage could fill it.</dd>
+          <dt><span class="pill filled">filled</span></dt>
+          <dd>Fully filled. Proceeds stay in the order until the owner cancels it.</dd>
+        </dl>
+        <h3>Honest limits</h3>
+        <ul>
+          <li><strong>Commitment is observed, not enforced.</strong> DLMM limit orders have no on-chain lock or expiry, and the owner can cancel at any time. "Open for" is time observed since creation.</li>
+          <li><strong>The band is a lower bound.</strong> It uses base fees. The real DLMM fee has a variable part (a devnet test measured 45 bps against a 25 bps base), so the real band is wider.</li>
+          <li><strong>The score is observational.</strong> Unfilled USD × days open (capped at 90) × proximity to the reference. It is not a reward, and nothing is paid out.</li>
+          <li><strong>The DLMM pool does not track the reference by itself.</strong> Only arbitrage links the two pools, so the DLMM active price can drift far from DAMM v2.</li>
+          <li><strong>This app cannot trade.</strong> It has no wallet connection and sends no transactions. The order preview is local arithmetic.</li>
+        </ul>
+      </article>
+    </main>
+
+    <footer class="foot">
+      Read-only. No wallet, no transactions. The conviction score is observational and is not a reward. Orders can be cancelled at any time.
+    </footer>
+
+    <template id="tpl-detail">
+      <div class="pool-head">
+        <div>
+          <h2 class="pool-name"></h2>
+          <div class="badges"></div>
+        </div>
+        <div class="links"></div>
+      </div>
+      <div class="warn drift" hidden></div>
+      <div class="stats"></div>
+      <section class="card">
+        <div class="card-head">
+          <h3>Depth by distance from the reference</h3>
+          <span class="hint">Unfilled USD per 1% bucket; orders beyond ±50% are stacked at the edges. Shaded: estimated no-fill band (lower bound).</span>
+        </div>
+        <div class="chart"></div>
+      </section>
+      <div class="split">
+        <section class="card book-card">
+          <div class="card-head">
+            <h3>Resting orders</h3>
+            <span class="hint coverage"></span>
+          </div>
+          <div class="table-wrap"><table class="orders"></table></div>
+        </section>
+        <section class="card preview-card">
+          <div class="card-head"><h3>Order preview</h3><span class="hint">Local math only</span></div>
+          <form class="preview" autocomplete="off">
+            <div class="seg" role="radiogroup" aria-label="Side">
+              <button type="button" data-side="bid" aria-pressed="true">Bid (buy below)</button>
+              <button type="button" data-side="ask" aria-pressed="false">Ask (sell above)</button>
+            </div>
+            <label>Distance from reference <span class="dist-out"></span>
+              <input name="dist" type="range" min="0.5" max="50" step="0.5" value="5" />
+            </label>
+            <label>Size (USD) <input name="size" type="number" min="0" step="10" value="250" /></label>
+            <label>Hold for (days) <input name="days" type="number" min="0" max="365" step="1" value="30" /></label>
+          </form>
+          <div class="preview-out" aria-live="polite"></div>
+          <p class="fine">No wallet is connected. This preview cannot place an order.</p>
+        </section>
+      </div>
+      <section class="card activity" hidden>
+        <div class="card-head"><h3>Observed fills of resting orders</h3><span class="hint act-window"></span></div>
+        <div class="act-body"></div>
+        <div class="table-wrap"><table class="act-txs"></table></div>
+      </section>
+    </template>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
