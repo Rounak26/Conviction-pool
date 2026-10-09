@@ -1,0 +1,16 @@
+node_modules/
+
+# Wallet and key material: never commit.
+.keys/
+*.keypair.json
+*-keypair.json
+id.json
+*.pem
+*.key
+
+# Environment files (RPC URLs with API keys, KEYPAIR_PATH, etc.).
+.env*
+
+# Experiment run logs. They hold public keys, signatures and program logs only,
+# but stay local; cite signatures in docs/feasibility.md instead.
+runs/

@@ -1,0 +1,32 @@
+{
+  "name": "conviction-pools",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "inspect": "tsx scripts/inspect.ts",
+    "wallet:new": "tsx scripts/wallet-new.ts",
+    "stage-a": "tsx scripts/stage-a.ts"
+  },
+  "dependencies": {
+    "@meteora-ag/cp-amm-sdk": "1.5.1",
+    "@meteora-ag/dlmm": "1.9.14",
+    "@solana/spl-token": "0.4.15",
+    "@solana/web3.js": "1.99.0",
+    "bn.js": "5.2.5",
+    "bs58": "6.0.0",
+    "decimal.js": "10.6.0"
+  },
+  "devDependencies": {
+    "@types/bn.js": "5.2.0",
+    "@types/node": "26.6.4",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
+  }
+}
