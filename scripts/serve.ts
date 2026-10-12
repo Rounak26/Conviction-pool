@@ -1,17 +1,20 @@
 // Local demo server for the Conviction Book. Serves web/ and a small JSON API computed by
 // src/book.ts from the files in web/data/. It makes no RPC calls, holds no keys, and
-// cannot sign or send transactions. Binds to 127.0.0.1 only.
+// cannot sign or send transactions. Binds to 127.0.0.1 locally; on a host (Render sets
+// RENDER, or set HOST explicitly) it binds to 0.0.0.0 so the platform's proxy can reach it.
 //
 //   npm run app            # http://127.0.0.1:5173  (PORT to override)
+//   npm start              # same server; production start command
 
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { buildBook, previewOrder, type PoolSnapshot, type Side } from "../src/book.js";
+import { listenAddress } from "../src/listen.js";
 
 const ROOT = path.resolve("web");
 const DATA = path.join(ROOT, "data");
-const PORT = Number(process.env.PORT ?? 5173);
+const { host: HOST, port: PORT } = listenAddress(process.env);
 const SOURCES = { "mainnet-snapshot": "mainnet-snapshot.json", demo: "demo.json" } as const;
 type SourceKey = keyof typeof SOURCES;
 
@@ -100,7 +103,7 @@ function api(url: URL, res: http.ServerResponse) {
   return send(res, 404, { error: "unknown endpoint" });
 }
 
-const server = http.createServer((req, res) => {
+function handle(req: http.IncomingMessage, res: http.ServerResponse) {
   if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "read-only server: GET only" });
   const url = new URL(req.url ?? "/", `http://127.0.0.1:${PORT}`);
   if (url.pathname.startsWith("/api/")) return api(url, res);
@@ -112,6 +115,17 @@ const server = http.createServer((req, res) => {
   }
   res.writeHead(200, { "content-type": MIME[path.extname(file)] ?? "application/octet-stream", "cache-control": "no-store" });
   fs.createReadStream(file).pipe(res);
+}
+
+// A throw inside a request handler (e.g. decodeURIComponent on a malformed "%" path) would
+// otherwise crash the whole process; answer 400/500 instead.
+const server = http.createServer((req, res) => {
+  try {
+    handle(req, res);
+  } catch (e) {
+    if (res.headersSent) return res.destroy();
+    send(res, e instanceof URIError ? 400 : 500, { error: e instanceof URIError ? "bad request" : "internal error" });
+  }
 });
 
-server.listen(PORT, "127.0.0.1", () => console.log(`Conviction Book: http://127.0.0.1:${PORT}  (local only; no RPC, no keys, no transactions)`));
+server.listen(PORT, HOST, () => console.log(`Conviction Book: http://${HOST}:${PORT}  (read-only; no RPC, no keys, no transactions)`));

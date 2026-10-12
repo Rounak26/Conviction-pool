@@ -13,6 +13,7 @@
     "wallet:new": "tsx scripts/wallet-new.ts",
     "stage-a": "tsx scripts/stage-a.ts",
     "data": "tsx scripts/build-data.ts",
+    "start": "tsx scripts/serve.ts",
     "app": "tsx scripts/serve.ts",
     "demo": "tsx scripts/build-data.ts && tsx scripts/serve.ts",
     "b0:census": "tsx scripts/b0-census.ts",
